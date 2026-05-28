@@ -1,0 +1,66 @@
+import asyncio
+from logging.config import fileConfig
+
+from sqlalchemy import pool
+from sqlalchemy.ext.asyncio import async_engine_from_config
+
+from alembic import context
+
+# 1. Импортируем наш конфиг и базовый класс моделей
+from src.config import settings
+from src.database import Base
+# КРИТИЧЕСКИ ВАЖНО: Импортируйте саму модель, иначе Alembic её не увидит!
+from src.courses.models import Course 
+from src.users.models import User
+
+# Это стандартная настройка логов Alembic
+config = context.config
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# 2. Указываем Alembic, где искать структуру таблиц
+target_metadata = Base.metadata
+
+# 3. Подменяем URL базы данных на тот, что у нас в .env
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+
+def run_migrations_offline() -> None:
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def do_run_migrations(connection):
+    context.configure(connection=connection, target_metadata=target_metadata)
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+async def run_migrations_online() -> None:
+    # Здесь мы создаем асингулярный движок для миграций
+    connectable = async_engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+
+    await connectable.dispose()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    asyncio.run(run_migrations_online())
+
