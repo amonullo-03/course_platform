@@ -1,6 +1,7 @@
 import json
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+
 from src.courses.models import Course
 from src.courses.schemas import CourseCreate, CourseResponse
 from src.redis_client import redis_client # Импортируем наш клиент Redis
@@ -44,4 +45,5 @@ class CourseService:
         )
 
         return courses_jsonable
+
 

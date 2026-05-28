@@ -9,4 +9,4 @@ pyjwt
 bcrypt
 python-multipart
 redis
-
+celery
